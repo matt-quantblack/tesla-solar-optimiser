@@ -1,0 +1,5 @@
+termcolor==1.1.0
+teslapy==2.4.0
+requests==2.27.1
+Flask==2.0.3
+flask-cors==3.0.10
