@@ -2,7 +2,7 @@ import axios, {CancelToken, Method} from "axios";
 import {keysToCamel, keysToSnake} from "./hooks/NamingConverter";
 
 const api_version = "v1";
-const base_url = `${process.env.REACT_APP_HOST}/api/${api_version}`
+const base_url = `${process.env.REACT_APP_HOST ? process.env.REACT_APP_HOST: ''}/api/${api_version}`
 
 function axiosHelper (
     url: string,
