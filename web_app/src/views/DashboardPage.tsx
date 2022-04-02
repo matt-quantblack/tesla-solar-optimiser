@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from "react";
 import api from "../api";
-import {Container, Grid, Card, Typography, CardContent, CardMedia, Alert} from "@mui/material";
+import {Container, Grid, Card, Typography, CardContent, Button, Alert, TextField, Box} from "@mui/material";
 import {CartesianGrid, LineChart, Line, XAxis, YAxis} from "recharts";
 
 // TODO: Split this out into different files / components
@@ -40,99 +40,112 @@ const SolarChargeStatePanel: React.FC<SolarChargeStatePanelProps> = ({solarCharg
     const last_update = ((new Date().getTime() - Date.parse(solarChargeState.lastUpdated)) / 1000 / 60).toFixed(
         0)
     return (
-        <Card variant="outlined" sx={{maxWidth: 500, marginTop: '10px'}}>
-            <CardMedia
-                height={180}
-                component="img"
-                image="/static/images/model-3-21-white-background.jpg"
-                alt="Tesla Model 3"
-            />
+        <Card variant="outlined" sx={{width: 750, height: 450, marginTop: '10px'}}>
             <CardContent>
-                <Typography gutterBottom variant="h5" component="div">
-                    Tesla Model 3
-                </Typography>
-                {solarChargeState.chargeState === 'Stopped' && <Alert severity="info">Not Charging</Alert>}
-                {solarChargeState.chargeState === 'Charging' && <Alert severity="success">Currently Charging</Alert>}
-                {solarChargeState.chargeState === 'Disconnected' && <Alert severity="error">Disconnected</Alert>}
-                <Typography variant="body2" color="text.secondary" sx={{paddingTop: '10px', paddingBottom: '10px'}}>
-                    <Grid container spacing={2}>
-                        <Grid item xs={6} md={4}
-                              sx={{fontWeight: 'bold', display: "flex", justifyContent: "flex-start"}}>
-                            Last Updated:
-                        </Grid>
-                        <Grid item xs={6} md={8} sx={{display: "flex", justifyContent: "flex-start"}}>
-                            {last_update} mins ago
-                        </Grid>
-                        <Grid item xs={6} md={4}
-                              sx={{fontWeight: 'bold', display: "flex", justifyContent: "flex-start"}}>
-                            Charge State:
-                        </Grid>
-                        <Grid item xs={6} md={8} sx={{display: "flex", justifyContent: "flex-start"}}>
-                            {solarChargeState.chargeState}
-                        </Grid>
-                        <Grid item xs={6} md={4}
-                              sx={{fontWeight: 'bold', display: "flex", justifyContent: "flex-start"}}>
-                            Current Load:
-                        </Grid>
-                        <Grid item xs={6} md={8} sx={{display: "flex", justifyContent: "flex-start"}}>
-                            {(solarChargeState.currentLoad / 1000).toFixed(2)} kW
-                        </Grid>
-                        <Grid item xs={6} md={4}
-                              sx={{fontWeight: 'bold', display: "flex", justifyContent: "flex-start"}}>
-                            Current Generation:
-                        </Grid>
-                        <Grid item xs={6} md={8} sx={{display: "flex", justifyContent: "flex-start"}}>
-                            {(solarChargeState.currentGeneration / 1000).toFixed(2)} kW
-                        </Grid>
-                        <Grid item xs={6} md={4}
-                              sx={{fontWeight: 'bold', display: "flex", justifyContent: "flex-start"}}>
-                            Spare Capacity:
-                        </Grid>
-                        <Grid item xs={6} md={8} sx={{display: "flex", justifyContent: "flex-start"}}>
-                            {(solarChargeState.spareCapacity / 1000).toFixed(2)} kW
-                        </Grid>
-                        <Grid item xs={6} md={4}
-                              sx={{fontWeight: 'bold', display: "flex", justifyContent: "flex-start"}}>
-                            Current Request:
-                        </Grid>
-                        <Grid item xs={6} md={8} sx={{display: "flex", justifyContent: "flex-start"}}>
-                            {solarChargeState.chargeCurrentRequest} Amps
-                        </Grid>
-                        <Grid item xs={6} md={4}
-                              sx={{fontWeight: 'bold', display: "flex", justifyContent: "flex-start"}}>
-                            Vehicle Charge:
-                        </Grid>
-                        <Grid item xs={6} md={8} sx={{display: "flex", justifyContent: "flex-start"}}>
-                            {solarChargeState.vehicleCharge.toFixed(0)} %
-                        </Grid>
-                        <Grid item xs={6} md={4}
-                              sx={{fontWeight: 'bold', display: "flex", justifyContent: "flex-start"}}>
-                            Battery Charge:
-                        </Grid>
-                        <Grid item xs={6} md={8} sx={{display: "flex", justifyContent: "flex-start"}}>
-                            {solarChargeState.batteryCharge.toFixed(0)} %
+                <Grid container spacing={2}>
+                    <Grid item xs={4}>
+                        <img
+                            style={{height: '70px'}}
+                            src="/static/images/model-3-21-white-background.jpg"
+                            alt="Tesla Model 3"/>
+                    </Grid>
+                    <Grid item xs={4} sx={{display: "block"}}>
+                        <Typography gutterBottom variant="h5" component="div">
+                            Tesla Model 3
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary"
+                                    sx={{paddingTop: '10px', paddingBottom: '10px'}}>
+                            Last update {last_update} mins ago
+                        </Typography>
+                    </Grid>
+                    <Grid item xs={4}>
+                        {solarChargeState.chargeState === 'Stopped' &&
+                            <Alert severity="info">Not Charging</Alert>}
+                        {solarChargeState.chargeState === 'Charging' &&
+                            <Alert severity="success">Currently Charging</Alert>}
+                        {solarChargeState.chargeState === 'Disconnected' &&
+                            <Alert severity="error">Disconnected</Alert>}
+                    </Grid>
+                    <Grid item xs={4}>
+                        <Grid container spacing={2}>
+                            <Grid item xs={6}
+                                  sx={{fontWeight: 'bold', display: "flex", justifyContent: "flex-start"}}>
+                                Load:
+                            </Grid>
+                            <Grid item xs={6} sx={{display: "flex", justifyContent: "flex-start"}}>
+                                {(solarChargeState.currentLoad / 1000).toFixed(2)} kW
+                            </Grid>
+                            <Grid item xs={6}
+                                  sx={{fontWeight: 'bold', display: "flex", justifyContent: "flex-start"}}>
+                                Solar:
+                            </Grid>
+                            <Grid item xs={6} sx={{display: "flex", justifyContent: "flex-start"}}>
+                                {(solarChargeState.currentGeneration / 1000).toFixed(2)} kW
+                            </Grid>
+                            <Grid item xs={6}
+                                  sx={{fontWeight: 'bold', display: "flex", justifyContent: "flex-start"}}>
+                                Spare:
+                            </Grid>
+                            <Grid item xs={6} sx={{display: "flex", justifyContent: "flex-start"}}>
+                                {(solarChargeState.spareCapacity / 1000).toFixed(2)} kW
+                            </Grid>
                         </Grid>
                     </Grid>
-                </Typography>
-
-                <Typography variant="body2" color="text.secondary" sx={{paddingTop: '10px'}}>
-                    Spare Capacity (kW)
-                </Typography>
-                <LineChart width={430} height={250} data={data}>
-                    <XAxis dataKey="minutes" minTickGap={100}/>
-                    <YAxis domain={['dataMin - 2', 'dataMax + 2']}/>
-                    <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
-                    <Line type="monotone" dataKey="value" stroke="#8884d8"/>
-                </LineChart>
-                <Typography variant="body2" color="text.secondary">
-                    Minutes ago
-                </Typography>
+                    <Grid item xs={4}>
+                        <Grid container spacing={2}>
+                            <Grid item xs={6}
+                                  sx={{fontWeight: 'bold', display: "flex", justifyContent: "flex-start"}}>
+                                Current:
+                            </Grid>
+                            <Grid item xs={6} sx={{display: "flex", justifyContent: "flex-start"}}>
+                                {solarChargeState.chargeCurrentRequest} Amps
+                            </Grid>
+                            <Grid item xs={6}
+                                  sx={{fontWeight: 'bold', display: "flex", justifyContent: "flex-start"}}>
+                                Vehicle:
+                            </Grid>
+                            <Grid item xs={6} sx={{display: "flex", justifyContent: "flex-start"}}>
+                                {solarChargeState.vehicleCharge.toFixed(0)} %
+                            </Grid>
+                            <Grid item xs={6}
+                                  sx={{fontWeight: 'bold', display: "flex", justifyContent: "flex-start"}}>
+                                Battery:
+                            </Grid>
+                            <Grid item xs={6} sx={{display: "flex", justifyContent: "flex-start"}}>
+                                {solarChargeState.batteryCharge.toFixed(0)} %
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                    <Grid item xs={4}>
+                        <Box sx={{display: "flex", justifyContent: "center", paddingBottom: '10px'}}>
+                            <Button variant="contained" size="small" style={{marginRight: '10px'}}>Login</Button>
+                            <Button variant={1 == 1 ? "contained" : "outlined"} size="small">Force Charge</Button>
+                        </Box>
+                        <TextField id="standard-basic" label="Min Vehicle Charge (%)" variant="standard" size="small"
+                                   value={70}/>
+                    </Grid>
+                    <Grid item xs={12}>
+                        <Typography variant="body2" color="text.secondary" sx={{paddingTop: '10px'}}>
+                            Spare Capacity (kW)
+                        </Typography>
+                        <LineChart width={680} height={150} data={data}>
+                            <XAxis dataKey="minutes" minTickGap={100}/>
+                            <YAxis
+                                domain={['dataMin - 2', 'dataMax + 2']}
+                                tickFormatter={(number: number) => number.toFixed(1)}/>
+                            <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
+                            <Line type="monotone" dataKey="value" stroke="#8884d8"/>
+                        </LineChart>
+                        <Typography variant="body2" color="text.secondary">
+                            Minutes ago
+                        </Typography>
+                    </Grid>
+                </Grid>
             </CardContent>
 
         </Card>
     )
 }
-
 
 const DashboardPage = () => {
 
@@ -152,7 +165,7 @@ const DashboardPage = () => {
     }, []);
 
     return (
-        <Container maxWidth="sm">
+        <Container>
             {solarChargeState ?
                 <SolarChargeStatePanel solarChargeState={solarChargeState}/> : <LoadingPanel/>
             }

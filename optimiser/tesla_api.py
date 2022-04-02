@@ -53,6 +53,7 @@ class TeslaAPI:
                 self.tesla.vehicle_list()[self.car_index].command(command, **kwargs)
                 return
             except teslapy.HTTPError as e:
+                self.tesla.vehicle_list()[self.car_index].sync_wake_up()
                 print(f"\r{e}")
                 time.sleep(2)
                 counter += 1
@@ -73,7 +74,7 @@ class TeslaAPI:
                 car_data = self.tesla.vehicle_list()[self.car_index].get_vehicle_data()
                 battery_data = self.tesla.battery_list()[self.battery_index].get_battery_data()
             except (teslapy.HTTPError, ReadTimeout, ConnectionError) as e:
-                self.connect()  # try to reconnect
+                self.tesla.vehicle_list()[self.car_index].sync_wake_up()
                 # TODO: Fix this - the car does not report any data after it goes to sleep
                 request_attempts -= 1
                 continue

@@ -115,7 +115,7 @@ class TeslaSolarOptimiser:
         """ Logic to determine if a command to start charging the car should be sent. """
 
         # TODO: Make these variables user editable
-        min_vehicle_charge = 50
+        min_vehicle_charge = 70
         force_charge_hours = 6
 
         # Check if we have enough excess solar to start charging
@@ -124,21 +124,12 @@ class TeslaSolarOptimiser:
             if self.solar_charge_state.charge_state == 'Stopped':
                 self._send_command('START_CHARGE')
                 self.solar_charge_state.charge_current_request = 0
-                charging_amps = self.solar_charge_state.possible_charge_current
 
                 # If we are below the minimum charge then force charge for 'force_charge_hours'
                 # By setting last command time to the future it will prevent optimiser from issuing new commands to
                 # stop the charge
                 if self.solar_charge_state.vehicle_charge < min_vehicle_charge:
                     self.last_command_time = datetime.datetime.now() + datetime.timedelta(hours=force_charge_hours)
-                    charging_amps = self.solar_charge_state.max_amps
-
-                # Update the charging amps to an appropriate amount
-                self._send_command(
-                    'CHARGING_AMPS',
-                    message=f'Setting CHARGING AMPS to {charging_amps}',
-                    charging_amps=charging_amps,
-                    force_command=True)
 
         # Check if we should increase or decrease the charge current or stop charging all together
         if self.solar_charge_state.charge_state == 'Charging':
