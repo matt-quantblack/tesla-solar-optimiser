@@ -93,15 +93,16 @@ class TeslaSolarOptimiser:
             color = 'red'
         print(colored(message, color))
 
-    def _send_command(self, command: str, message: str = None, severity: str = 'DEBUG', **kwargs):
+    def _send_command(self, command: str, message: str = None, severity: str = 'DEBUG', force_command=False, **kwargs):
         """
         Sends a command to the api
         Args:
             command: The command to send
             message: A message to log otherwise logs the command if none
             severity: The severity of the log message
+            force_command: If True bypasses the commands allowed check
         """
-        if self.commands_allowed:
+        if self.commands_allowed or force_command:
             self.last_command_time = datetime.datetime.now()
             self.tesla_api.send_command(command, **kwargs)
             for logger in self._loggers:
@@ -113,35 +114,52 @@ class TeslaSolarOptimiser:
     def _determine_command(self):
         """ Logic to determine if a command to start charging the car should be sent. """
 
+        # TODO: Make these variables user editable
+        min_vehicle_charge = 50
+        force_charge_hours = 6
+
         # Check if we have enough excess solar to start charging
-        if self.solar_charge_state.avg_spare_capacity > 1250:
+        if self.solar_charge_state.avg_spare_capacity > 1250 \
+                or self.solar_charge_state.vehicle_charge < min_vehicle_charge:
             if self.solar_charge_state.charge_state == 'Stopped':
                 self._send_command('START_CHARGE')
                 self.solar_charge_state.charge_current_request = 0
+                charging_amps = self.solar_charge_state.possible_charge_current
+
+                # If we are below the minimum charge then force charge for 'force_charge_hours'
+                # By setting last command time to the future it will prevent optimiser from issuing new commands to
+                # stop the charge
+                if self.solar_charge_state.vehicle_charge < min_vehicle_charge:
+                    self.last_command_time = datetime.datetime.now() + datetime.timedelta(hours=force_charge_hours)
+                    charging_amps = self.solar_charge_state.max_amps
+
+                # Update the charging amps to an appropriate amount
                 self._send_command(
                     'CHARGING_AMPS',
-                    message=f'Setting CHARGING AMPS to {self.solar_charge_state.possible_charge_current}',
-                    charging_amps=self.solar_charge_state.possible_charge_current)
+                    message=f'Setting CHARGING AMPS to {charging_amps}',
+                    charging_amps=charging_amps,
+                    force_command=True)
 
         # Check if we should increase or decrease the charge current or stop charging all together
         if self.solar_charge_state.charge_state == 'Charging':
             if self.solar_charge_state.avg_spare_capacity < 0:
                 # Stop charging because we don't have enough to even run a minimum charge
-                if self.solar_charge_state.possible_charge_current < 5:
+                if self.solar_charge_state.possible_charge_current < 5 and \
+                        self.solar_charge_state.vehicle_charge >= min_vehicle_charge:
                     self._send_command('STOP_CHARGE')
                 elif self.solar_charge_state.is_charge_change:
+
+                    if self.solar_charge_state.vehicle_charge < min_vehicle_charge:
+                        charging_amps = self.solar_charge_state.max_amps
+                    else:
+                        charging_amps = self.solar_charge_state.possible_charge_current
                     self._send_command(
                         'CHARGING_AMPS',
-                        message=f'Setting CHARGING AMPS to {self.solar_charge_state.possible_charge_current}',
-                        charging_amps=self.solar_charge_state.possible_charge_current)
+                        message=f'Setting CHARGING AMPS to {charging_amps}',
+                        charging_amps=charging_amps)
             else:
                 if self.solar_charge_state.is_charge_change:
                     self._send_command(
                         'CHARGING_AMPS',
                         message=f'Setting CHARGING AMPS to {self.solar_charge_state.possible_charge_current}',
                         charging_amps=self.solar_charge_state.possible_charge_current)
-
-
-
-
-
