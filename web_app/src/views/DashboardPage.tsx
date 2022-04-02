@@ -37,7 +37,8 @@ const SolarChargeStatePanel: React.FC<SolarChargeStatePanelProps> = ({solarCharg
         };
     });
     // TODO: Work out the min and max here so it will dynamically update the chart when new data is updated.
-
+    const last_update = ((new Date().getTime() - Date.parse(solarChargeState.lastUpdated)) / 1000 / 60).toFixed(
+        0)
     return (
         <Card variant="outlined" sx={{maxWidth: 500, marginTop: '10px'}}>
             <CardMedia
@@ -60,7 +61,7 @@ const SolarChargeStatePanel: React.FC<SolarChargeStatePanelProps> = ({solarCharg
                             Last Updated:
                         </Grid>
                         <Grid item xs={6} md={8} sx={{display: "flex", justifyContent: "flex-start"}}>
-                            {solarChargeState.lastUpdated}
+                            {last_update} mins ago
                         </Grid>
                         <Grid item xs={6} md={4}
                               sx={{fontWeight: 'bold', display: "flex", justifyContent: "flex-start"}}>

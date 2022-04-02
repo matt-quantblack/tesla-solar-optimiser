@@ -16,7 +16,7 @@ class SolarChargeState:
             history_count: int = 30,
             amps_per_kw: int = 5,
             max_amps: int = 10,
-            time_format: str = '%d/%m/%Y %H:%M:%S'):
+            time_format: str = '%Y-%m-%dT%H:%M:%S'):
         """
         The model for solar charge state that combines info from the vehicle and the powerwall
         Args:
