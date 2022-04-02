@@ -4,7 +4,6 @@ from pathlib import Path
 import os
 from flask_cors import CORS
 from flask import Flask, request
-import webbrowser
 
 app = Flask(__name__, static_folder='./web_app/build/', static_url_path='/')
 
@@ -64,5 +63,4 @@ if __name__ == '__main__':
     Flask server to view current state and activate/deactivate force charging
     """
     print("Booting Flask Server")
-    webbrowser.open('http://localhost:5000')
     app.run()
