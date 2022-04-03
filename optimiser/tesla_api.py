@@ -17,7 +17,7 @@ class TeslaAPI:
             car_index: The index in the list of vehicles output from the tesla api watched by this object
             battery_index: The index in the list of batteries output from the tesla api watched by this object
         """
-        self.request_attempts = 50
+        self.request_attempts = 2
         self.username = username
         self.car_index = car_index
         self.battery_index = battery_index
@@ -70,7 +70,6 @@ class TeslaAPI:
                 battery_data = self.tesla.battery_list()[self.battery_index].get_battery_data()
             except (teslapy.HTTPError, ReadTimeout, ConnectionError) as e:
                 self.tesla.vehicle_list()[self.car_index].sync_wake_up()
-                # TODO: Fix this - the car does not report any data after it goes to sleep
                 request_attempts -= 1
                 continue
 
