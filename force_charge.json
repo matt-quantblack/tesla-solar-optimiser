@@ -1,1 +1,8 @@
-{"request_time": "28/03/2022 20:56:27", "force_charge": false}
+{
+  "request_time": null,
+  "force_charge": false,
+  "min_vehicle_charge": 50,
+  "force_charge_level": 70,
+  "force_charge_amps": 5,
+  "min_spare_capacity": 1250
+}

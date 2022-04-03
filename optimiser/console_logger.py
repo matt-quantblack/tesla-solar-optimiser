@@ -12,8 +12,10 @@ class ConsoleLogger:
             severity: The severity of the message which can determine the colour displayed
         """
         color = None
-        if severity == 'DEBUG':
+        if severity == 'INFO':
             color = 'blue'
+        elif severity == 'SUCCESS':
+            color = 'green'
         elif severity == 'ERROR':
             color = 'red'
 

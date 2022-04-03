@@ -4,8 +4,9 @@ import {Container, Grid, Card, Typography, CardContent, Button, Alert, TextField
 import {CartesianGrid, LineChart, Line, XAxis, YAxis} from "recharts";
 
 // TODO: Split this out into different files / components
-// TODO: Use Sass or styled components for styling
-
+// TODO: Use styled components for styling
+// TODO: Create a Configure page for relogin, force_charge setup ect..
+interface DataPoint {timestamp: number, value: number};
 interface SolarChargeState {
     lastUpdated: string,
     chargeState: string,
@@ -15,7 +16,7 @@ interface SolarChargeState {
     chargeCurrentRequest: number,
     vehicleCharge: number,
     batteryCharge: number,
-    spareCapacityHistory: Array<number>
+    spareCapacityHistory: Array<DataPoint>
 }
 
 interface LoadingProps {
@@ -36,7 +37,15 @@ const SolarChargeStatePanel: React.FC<SolarChargeStatePanelProps> = ({solarCharg
             value: (value['value'] / 1000).toFixed(1)
         };
     });
-    // TODO: Work out the min and max here so it will dynamically update the chart when new data is updated.
+
+    // get the min and max of the data points to scale the chart
+    let min: number=Number.MAX_VALUE;
+    let max: number=Number.MIN_VALUE;
+    solarChargeState.spareCapacityHistory.forEach(function(val) {
+        if(val.value < min) min = val.value;
+        if(val.value > max) max = val.value;
+    });
+
     const last_update = ((new Date().getTime() - Date.parse(solarChargeState.lastUpdated)) / 1000 / 60).toFixed(
         0)
     return (
@@ -65,6 +74,8 @@ const SolarChargeStatePanel: React.FC<SolarChargeStatePanelProps> = ({solarCharg
                             <Alert severity="success">Currently Charging</Alert>}
                         {solarChargeState.chargeState === 'Disconnected' &&
                             <Alert severity="error">Disconnected</Alert>}
+                        {solarChargeState.chargeState === 'Complete' &&
+                            <span>Complete</span>}
                     </Grid>
                     <Grid item xs={4}>
                         <Grid container spacing={2}>
@@ -109,7 +120,7 @@ const SolarChargeStatePanel: React.FC<SolarChargeStatePanelProps> = ({solarCharg
                             </Grid>
                             <Grid item xs={6}
                                   sx={{fontWeight: 'bold', display: "flex", justifyContent: "flex-start"}}>
-                                Battery:
+                                Powerwall:
                             </Grid>
                             <Grid item xs={6} sx={{display: "flex", justifyContent: "flex-start"}}>
                                 {solarChargeState.batteryCharge.toFixed(0)} %
@@ -122,7 +133,7 @@ const SolarChargeStatePanel: React.FC<SolarChargeStatePanelProps> = ({solarCharg
                             <Button variant={1 == 1 ? "contained" : "outlined"} size="small">Force Charge</Button>
                         </Box>
                         <TextField id="standard-basic" label="Min Vehicle Charge (%)" variant="standard" size="small"
-                                   value={70}/>
+                                   value={50}/>
                     </Grid>
                     <Grid item xs={12}>
                         <Typography variant="body2" color="text.secondary" sx={{paddingTop: '10px'}}>
@@ -131,7 +142,7 @@ const SolarChargeStatePanel: React.FC<SolarChargeStatePanelProps> = ({solarCharg
                         <LineChart width={680} height={150} data={data}>
                             <XAxis dataKey="minutes" minTickGap={100}/>
                             <YAxis
-                                domain={['dataMin - 2', 'dataMax + 2']}
+                                domain={[min/1000 - 2, max/1000 + 2]}
                                 tickFormatter={(number: number) => number.toFixed(1)}/>
                             <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
                             <Line type="monotone" dataKey="value" stroke="#8884d8"/>

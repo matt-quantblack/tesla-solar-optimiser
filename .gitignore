@@ -154,6 +154,8 @@ cache.json
 current_state.json
 data.csv
 log.txt
+errors.txt
 log_difference.txt
+force_charge.json
 
 .idea/*

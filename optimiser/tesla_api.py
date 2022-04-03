@@ -46,17 +46,12 @@ class TeslaAPI:
             **kwargs: Any additional parameters required with the command
         """
 
-        # Keep trying to send the command until success or request_attempts has been reached
-        counter = 0
-        while counter < self.request_attempts:
-            try:
-                self.tesla.vehicle_list()[self.car_index].command(command, **kwargs)
-                return
-            except teslapy.HTTPError as e:
-                self.tesla.vehicle_list()[self.car_index].sync_wake_up()
-                print(f"\r{e}")
-                time.sleep(2)
-                counter += 1
+        try:
+            self.tesla.vehicle_list()[self.car_index].command(command, **kwargs)
+            return "Command Success", True
+        except (teslapy.HTTPError, teslapy.VehicleError) as e:
+            self.tesla.vehicle_list()[self.car_index].sync_wake_up()
+            return f"{e}", False
 
     def update_solar_charge_state(self, solar_charge_state: SolarChargeState) -> SolarChargeState:
         """

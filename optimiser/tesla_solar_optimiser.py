@@ -3,9 +3,7 @@ import json
 import time
 from pathlib import Path
 from typing import Any
-
-import teslapy
-from termcolor import colored
+from optimiser.force_charge_command import ForceChargeCommand
 from optimiser.solar_charge_state import SolarChargeState
 
 
@@ -49,9 +47,12 @@ class TeslaSolarOptimiser:
                 solar_charge_state=self.solar_charge_state)
             Path('current_state.json').write_text(json.dumps(self.solar_charge_state.json))
             if self.solar_charge_state is not None:
-                self._display_console(str(self.solar_charge_state))
-                self._determine_command()
+                self._log(
+                    message=str(self.solar_charge_state),
+                    severity=self._get_message_severity(self.solar_charge_state.charge_state))
                 self._log_data()
+                self._determine_command()
+
             time.sleep(10)
 
     def attach_logger(self, logger: Any):
@@ -61,6 +62,20 @@ class TeslaSolarOptimiser:
             logger: Any logger object that satisfies the interface
         """
         self._loggers.append(logger)
+
+    def _log(self, message: str, severity: str = 'DEBUG'):
+        """
+        Sends the log message to all loggers
+
+        Args:
+            message: The message to log
+            severity: The severity of the message
+        """
+        for logger in self._loggers:
+            if message is not None:
+                logger.log(message, severity)
+            else:
+                logger.log(message, severity)
 
     @property
     def secs_since_last_command(self) -> int:
@@ -80,18 +95,18 @@ class TeslaSolarOptimiser:
         if self.data_logger is not None:
             self.data_logger.log(self.solar_charge_state.csv)
 
-    def _display_console(self, message: str):
-        """
-        Display the message in the console
+    @staticmethod
+    def _get_message_severity(charge_state: str) -> str:
+        """ Gets a colour based on charge state.
         Args:
-            message: The message to display
-        """
-        color = None
-        if self.solar_charge_state.charge_state == 'Charging':
-            color = 'green'
-        if self.solar_charge_state.charge_state == 'Disconnected':
-            color = 'red'
-        print(colored(message, color))
+            charge_state: The current charging state
+            """
+        severity = 'DEBUG'
+        if charge_state == 'Charging':
+            severity = 'SUCCESS'
+        if charge_state == 'Disconnected':
+            severity = 'ERROR'
+        return severity
 
     def _send_command(self, command: str, message: str = None, severity: str = 'DEBUG', force_command=False, **kwargs):
         """
@@ -104,53 +119,71 @@ class TeslaSolarOptimiser:
         """
         if self.commands_allowed or force_command:
             self.last_command_time = datetime.datetime.now()
-            self.tesla_api.send_command(command, **kwargs)
-            for logger in self._loggers:
-                if message is not None:
-                    logger.log(message, severity)
-                else:
-                    logger.log(command, severity)
+            result, success = self.tesla_api.send_command(command, **kwargs)
+            if success:
+                self._log(message, severity) if message is not None else self._log(command, severity)
+            else:
+                self._log(result, severity="ERROR")
 
     def _determine_command(self):
         """ Logic to determine if a command to start charging the car should be sent. """
 
-        # TODO: Make these variables user editable
-        min_vehicle_charge = 70
-        force_charge_hours = 6
+        # Load any force charge commands
+        force_charge_command: ForceChargeCommand = ForceChargeCommand.load()
+        now = datetime.datetime.now()
 
-        # Check if we have enough excess solar to start charging
-        if self.solar_charge_state.avg_spare_capacity > 1250 \
-                or self.solar_charge_state.vehicle_charge < min_vehicle_charge:
+        if self.solar_charge_state.charge_state == "Complete":
+            self._send_command('CHARGE_PORT_DOOR_OPEN')  # Unlock the charge port
+
+        # Check if we have enough excess solar to start charging or if we are force charging car
+        elif self.solar_charge_state.avg_spare_capacity > force_charge_command.min_spare_capacity \
+                or self.solar_charge_state.vehicle_charge < force_charge_command.min_vehicle_charge \
+                or force_charge_command.force_charge is True:
             if self.solar_charge_state.charge_state == 'Stopped':
                 self._send_command('START_CHARGE')
-                self.solar_charge_state.charge_current_request = 0
 
                 # If we are below the minimum charge then force charge for 'force_charge_hours'
-                # By setting last command time to the future it will prevent optimiser from issuing new commands to
-                # stop the charge
-                if self.solar_charge_state.vehicle_charge < min_vehicle_charge:
-                    self.last_command_time = datetime.datetime.now() + datetime.timedelta(hours=force_charge_hours)
+                if self.solar_charge_state.vehicle_charge < force_charge_command.min_vehicle_charge:
+                    self._log(
+                        f'Battery charge below minimum of {force_charge_command.min_vehicle_charge}',
+                        severity='INFO')
+                # If we are below the minimum charge then force charge for 'force_charge_hours'
+                if force_charge_command.force_charge:
+                    self._log(
+                        f'Force charge activated',
+                        severity='INFO')
+
+                # If this was force charged then record the start time
+                if self.solar_charge_state.avg_spare_capacity <= force_charge_command.min_spare_capacity:
+                    force_charge_command.request_time = now
+                    force_charge_command.save()
 
         # Check if we should increase or decrease the charge current or stop charging all together
         if self.solar_charge_state.charge_state == 'Charging':
-            if self.solar_charge_state.avg_spare_capacity < 0:
-                # Stop charging because we don't have enough to even run a minimum charge
-                if self.solar_charge_state.possible_charge_current < 5 and \
-                        self.solar_charge_state.vehicle_charge >= min_vehicle_charge:
-                    self._send_command('STOP_CHARGE')
-                elif self.solar_charge_state.is_charge_change:
+            new_charging_amps = 0
 
-                    if self.solar_charge_state.vehicle_charge < min_vehicle_charge:
-                        charging_amps = self.solar_charge_state.max_amps
-                    else:
-                        charging_amps = self.solar_charge_state.possible_charge_current
-                    self._send_command(
-                        'CHARGING_AMPS',
-                        message=f'Setting CHARGING AMPS to {charging_amps}',
-                        charging_amps=charging_amps)
-            else:
-                if self.solar_charge_state.is_charge_change:
-                    self._send_command(
-                        'CHARGING_AMPS',
-                        message=f'Setting CHARGING AMPS to {self.solar_charge_state.possible_charge_current}',
-                        charging_amps=self.solar_charge_state.possible_charge_current)
+            # Stop charging because we don't have enough to even run a minimum charge but only if not force charging
+            if self.solar_charge_state.avg_spare_capacity < 0:
+                if self.solar_charge_state.possible_charge_current < 5 and \
+                        not force_charge_command.is_forcing_charge(self.solar_charge_state.vehicle_charge):
+                    self._send_command('STOP_CHARGE')
+                    self._send_command('CHARGE_PORT_DOOR_OPEN')  # Unlock the charge port
+
+                    # Mark force charging as complete since is_forcing_charge returns False - meaning it completed.
+                    if force_charge_command.request_time is not None:
+                        force_charge_command.request_time = None
+                        force_charge_command.save()
+
+            # Otherwise, see if we can increase the charge if the possible charge is different to current
+            elif self.solar_charge_state.is_charge_change:
+                if self.solar_charge_state.vehicle_charge < force_charge_command.min_vehicle_charge:
+                    new_charging_amps = force_charge_command.force_charge_amps
+                else:
+                    new_charging_amps = self.solar_charge_state.possible_charge_current
+
+            # A change in charging amps is required
+            if new_charging_amps > 0:
+                self._send_command(
+                    'CHARGING_AMPS',
+                    message=f'Setting CHARGING AMPS to {new_charging_amps}',
+                    charging_amps=new_charging_amps)

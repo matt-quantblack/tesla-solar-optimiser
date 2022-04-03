@@ -5,6 +5,8 @@ import os
 from flask_cors import CORS
 from flask import Flask, request
 
+# TODO: End points for force_charge configuration, getting tesla url and updating token ect.
+
 app = Flask(__name__, static_folder='./web_app/build/', static_url_path='/')
 
 if os.environ.get('ENV', 'DEV') == 'DEV':
