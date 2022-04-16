@@ -65,4 +65,4 @@ if __name__ == '__main__':
     Flask server to view current state and activate/deactivate force charging
     """
     print("Booting Flask Server")
-    app.run()
+    app.run(host='0.0.0.0')

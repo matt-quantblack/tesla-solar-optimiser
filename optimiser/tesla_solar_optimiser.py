@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 from optimiser.force_charge_command import ForceChargeCommand
 from optimiser.solar_charge_state import SolarChargeState
+from requests.exceptions import ConnectionError
 
 
 class TeslaSolarOptimiser:
@@ -42,9 +43,22 @@ class TeslaSolarOptimiser:
         """
         The main run loop that displays charge state and makes decisions on weather to charge the vehicle
         """
+        loop_counter = 0
         while True:
-            self.solar_charge_state = self.tesla_api.update_solar_charge_state(
-                solar_charge_state=self.solar_charge_state)
+            try:
+                self.solar_charge_state = self.tesla_api.update_battery_charge_state(
+                    solar_charge_state=self.solar_charge_state)
+            except ConnectionError as e:
+                self._log(str(e), severity='ERROR')
+
+            # Only update the car data every 120 loops to minimise car awake time
+            if loop_counter % 120 == 0:
+                try:
+                    self.solar_charge_state = self.tesla_api.update_car_charge_state(
+                        solar_charge_state=self.solar_charge_state)
+                except ConnectionError as e:
+                    self._log(str(e), severity='ERROR')
+
             Path('current_state.json').write_text(json.dumps(self.solar_charge_state.json))
             if self.solar_charge_state is not None:
                 self._log(
@@ -52,6 +66,8 @@ class TeslaSolarOptimiser:
                     severity=self._get_message_severity(self.solar_charge_state.charge_state))
                 self._log_data()
                 self._determine_command()
+
+            loop_counter += 1
 
             time.sleep(10)
 

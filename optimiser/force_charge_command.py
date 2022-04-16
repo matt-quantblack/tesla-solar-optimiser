@@ -1,10 +1,16 @@
 from __future__ import annotations
 import datetime
-from typing import ClassVar, Optional
-from optimiser.local_json_dataclass import LocalJsonDataclass
+from pathlib import Path
+from typing import ClassVar, Optional, TYPE_CHECKING
+if TYPE_CHECKING:  # Avoids circular references for type hints
+    from optimiser.force_charge_command import ForceChargeCommand
+from dataclasses_json import dataclass_json
+from dataclasses import dataclass
 
 
-class ForceChargeCommand(LocalJsonDataclass):
+@dataclass_json
+@dataclass
+class ForceChargeCommand:
     """
     The configuration for forcing the vehicle to charge
 
@@ -27,3 +33,10 @@ class ForceChargeCommand(LocalJsonDataclass):
 
     def is_forcing_charge(self, vehicle_charge: float) -> bool:
         return self.request_time is not None and vehicle_charge < self.force_charge_level
+
+    def save(self):
+        Path(self.file_path).write_text(self.to_json())
+
+    @classmethod
+    def load(cls) -> ForceChargeCommand:
+        return cls.from_json(Path(cls.file_path).read_text())

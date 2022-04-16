@@ -1,6 +1,5 @@
 import atexit
 import datetime
-import time
 from requests.exceptions import ReadTimeout, ConnectionError
 import teslapy
 
@@ -53,9 +52,9 @@ class TeslaAPI:
             self.tesla.vehicle_list()[self.car_index].sync_wake_up()
             return f"{e}", False
 
-    def update_solar_charge_state(self, solar_charge_state: SolarChargeState) -> SolarChargeState:
+    def update_car_charge_state(self, solar_charge_state: SolarChargeState) -> SolarChargeState:
         """
-        Takes an existing SolarChargeState and updates it with new information
+        Takes an existing SolarChargeState and updates it with new information from the car
         Args:
             solar_charge_state: The existing solar charge state to update
 
@@ -63,28 +62,52 @@ class TeslaAPI:
             The updated SolarChargeState
         """
         request_attempts = self.request_attempts
+        car_data = None
 
-        while request_attempts >= 0:
+        while car_data is None:
             try:
+                self.connect()
+                self.tesla.vehicle_list()[self.car_index].sync_wake_up()
                 car_data = self.tesla.vehicle_list()[self.car_index].get_vehicle_data()
+            except (teslapy.HTTPError, ReadTimeout, ConnectionError) as e:
+                request_attempts -= 1
+                if request_attempts == 0:
+                    raise ConnectionError(f"Could not connect to car: {e}")
+
+        solar_charge_state.charge_state = car_data['charge_state']['charging_state']
+        solar_charge_state.charge_current_request = car_data['charge_state']['charge_current_request']
+        solar_charge_state.vehicle_charge = car_data['charge_state']['battery_level']
+
+        return solar_charge_state
+
+    def update_battery_charge_state(self, solar_charge_state: SolarChargeState) -> SolarChargeState:
+        """
+        Takes an existing SolarChargeState and updates it with new information from the battery
+        Args:
+            solar_charge_state: The existing solar charge state to update
+
+        Returns:
+            The updated SolarChargeState
+        """
+        request_attempts = self.request_attempts
+        battery_data = None
+
+        while battery_data is None:
+            try:
                 battery_data = self.tesla.battery_list()[self.battery_index].get_battery_data()
             except (teslapy.HTTPError, ReadTimeout, ConnectionError) as e:
-                self.tesla.vehicle_list()[self.car_index].sync_wake_up()
                 request_attempts -= 1
-                continue
+                if request_attempts == 0:
+                    raise ConnectionError(f"Could not connect to battery: {e}")
 
-            power_data = battery_data.get('power_reading')[0]
+        power_data = battery_data.get('power_reading')[0]
 
-            solar_charge_state.current_load = power_data['load_power']
-            solar_charge_state.current_generation = power_data['solar_power']
-            solar_charge_state.update_spare_capacity(
-                timestamp=datetime.datetime.now().timestamp(),
-                value=solar_charge_state.spare_capacity)
-            solar_charge_state.charge_state = car_data['charge_state']['charging_state']
-            solar_charge_state.charge_current_request = car_data['charge_state']['charge_current_request']
-            solar_charge_state.vehicle_charge = car_data['charge_state']['battery_level']
-            battery_perc = battery_data.get('energy_left') / battery_data.get('total_pack_energy') * 100
-            solar_charge_state.battery_charge = battery_perc
+        solar_charge_state.current_load = power_data['load_power']
+        solar_charge_state.current_generation = power_data['solar_power']
+        solar_charge_state.update_spare_capacity(
+            timestamp=datetime.datetime.now().timestamp(),
+            value=solar_charge_state.spare_capacity)
+        battery_perc = battery_data.get('energy_left') / battery_data.get('total_pack_energy') * 100
+        solar_charge_state.battery_charge = battery_perc
 
-            return solar_charge_state
         return solar_charge_state
