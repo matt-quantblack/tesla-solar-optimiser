@@ -52,7 +52,7 @@ class TeslaSolarOptimiser:
                 self._log(str(e), severity='ERROR')
 
             # Only update the car data every 60 loops to minimise car awake time
-            if loop_counter % 60 == 0:
+            if loop_counter % 40 == 0:
                 try:
                     self.solar_charge_state = self.tesla_api.update_car_charge_state(
                         solar_charge_state=self.solar_charge_state)
@@ -122,7 +122,7 @@ class TeslaSolarOptimiser:
         if charge_state == 'Charging':
             severity = 'SUCCESS'
         if charge_state == 'Disconnected':
-            severity = 'ERROR'
+            severity = 'INFO'
         return severity
 
     def _send_command(self, command: str, message: str = None, severity: str = 'DEBUG', force_command=False, **kwargs):
