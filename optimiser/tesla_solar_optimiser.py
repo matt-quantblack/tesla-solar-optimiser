@@ -151,6 +151,7 @@ class TeslaSolarOptimiser:
 
         if self.solar_charge_state.charge_state == "Complete":
             self._send_command('CHARGE_PORT_DOOR_OPEN')  # Unlock the charge port
+            self.solar_charge_state.charge_state = "Disconnected"
 
         # Check if we have enough excess solar to start charging or if we are force charging car
         elif self.solar_charge_state.avg_spare_capacity > force_charge_command.min_spare_capacity \
