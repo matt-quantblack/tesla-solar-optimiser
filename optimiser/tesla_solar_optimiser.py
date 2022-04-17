@@ -56,6 +56,7 @@ class TeslaSolarOptimiser:
                 try:
                     self.solar_charge_state = self.tesla_api.update_car_charge_state(
                         solar_charge_state=self.solar_charge_state)
+                    self._log("Car data updated.", severity='DEBUG')
                 except ConnectionError as e:
                     self._log(str(e), severity='ERROR')
 
