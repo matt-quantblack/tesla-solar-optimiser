@@ -46,10 +46,11 @@ class TeslaAPI:
         """
 
         try:
+            self.connect()
+            self.tesla.vehicle_list()[self.car_index].sync_wake_up()
             self.tesla.vehicle_list()[self.car_index].command(command, **kwargs)
             return "Command Success", True
         except (teslapy.HTTPError, teslapy.VehicleError) as e:
-            self.tesla.vehicle_list()[self.car_index].sync_wake_up()
             return f"{e}", False
 
     def update_car_charge_state(self, solar_charge_state: SolarChargeState) -> SolarChargeState:
