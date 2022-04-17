@@ -122,7 +122,7 @@ class TeslaSolarOptimiser:
         if charge_state == 'Charging':
             severity = 'SUCCESS'
         if charge_state == 'Disconnected':
-            severity = 'INFO'
+            severity = 'ERROR'
         return severity
 
     def _send_command(self, command: str, message: str = None, severity: str = 'DEBUG', force_command=False, **kwargs):
