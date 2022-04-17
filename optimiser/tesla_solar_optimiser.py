@@ -142,6 +142,14 @@ class TeslaSolarOptimiser:
             else:
                 self._log(result, severity="ERROR")
 
+            # Update the car data
+            try:
+                self.solar_charge_state = self.tesla_api.update_car_charge_state(
+                    solar_charge_state=self.solar_charge_state)
+                self._log("Car data updated.", severity='DEBUG')
+            except ConnectionError as e:
+                self._log(str(e), severity='ERROR')
+
     def _determine_command(self):
         """ Logic to determine if a command to start charging the car should be sent. """
 
@@ -151,7 +159,6 @@ class TeslaSolarOptimiser:
 
         if self.solar_charge_state.charge_state == "Complete":
             self._send_command('CHARGE_PORT_DOOR_OPEN')  # Unlock the charge port
-            self.solar_charge_state.charge_state = "Disconnected"
 
         # Check if we have enough excess solar to start charging or if we are force charging car
         elif self.solar_charge_state.avg_spare_capacity > force_charge_command.min_spare_capacity \
