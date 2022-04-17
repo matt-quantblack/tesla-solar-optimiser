@@ -51,8 +51,8 @@ class TeslaSolarOptimiser:
             except ConnectionError as e:
                 self._log(str(e), severity='ERROR')
 
-            # Only update the car data every 120 loops to minimise car awake time
-            if loop_counter % 120 == 0:
+            # Only update the car data every 60 loops to minimise car awake time
+            if loop_counter % 60 == 0:
                 try:
                     self.solar_charge_state = self.tesla_api.update_car_charge_state(
                         solar_charge_state=self.solar_charge_state)
@@ -70,7 +70,7 @@ class TeslaSolarOptimiser:
 
             loop_counter += 1
 
-            time.sleep(10)
+            time.sleep(20)
 
     def attach_logger(self, logger: Any):
         """
