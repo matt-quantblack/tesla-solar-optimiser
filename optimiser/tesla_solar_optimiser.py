@@ -157,7 +157,7 @@ class TeslaSolarOptimiser:
         force_charge_command: ForceChargeCommand = ForceChargeCommand.load()
         now = datetime.datetime.now()
 
-        if self.solar_charge_state.charge_state == "Complete":
+        if self.solar_charge_state.charge_state == "Complete" and self.solar_charge_state.port_open is False:
             self._send_command('CHARGE_PORT_DOOR_OPEN')  # Unlock the charge port
 
         # Check if we have enough excess solar to start charging or if we are force charging car

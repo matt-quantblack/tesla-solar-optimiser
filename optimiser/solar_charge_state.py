@@ -36,6 +36,7 @@ class SolarChargeState:
         self.charge_state = charge_state
         self.charge_current_request = charge_current_request
         self.spare_capacity_history = deque()
+        self.port_open = False
         self.vehicle_charge = vehicle_charge
         self.battery_charge = battery_charge
         self.history_count = history_count

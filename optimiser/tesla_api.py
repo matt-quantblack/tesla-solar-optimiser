@@ -78,6 +78,7 @@ class TeslaAPI:
         solar_charge_state.charge_state = car_data['charge_state']['charging_state']
         solar_charge_state.charge_current_request = car_data['charge_state']['charge_current_request']
         solar_charge_state.vehicle_charge = car_data['charge_state']['battery_level']
+        solar_charge_state.port_open = car_data['charge_state']['charge_port_door_open']
 
         return solar_charge_state
 
