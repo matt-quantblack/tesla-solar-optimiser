@@ -196,7 +196,7 @@ class TeslaSolarOptimiser:
                           f"Possible charge rate: "
                           f"{self.solar_charge_state.possible_charge_current}, "
                           f"Is forcing: {is_forcing}")
-                
+
                 if self.solar_charge_state.possible_charge_current < 5 and \
                         not is_forcing:
                     self._send_command('STOP_CHARGE')
@@ -207,8 +207,10 @@ class TeslaSolarOptimiser:
                         force_charge_command.request_time = None
                         force_charge_command.save()
 
+                    return
+
             # Otherwise, see if we can increase the charge if the possible charge is different to current
-            elif self.solar_charge_state.is_charge_change:
+            if self.solar_charge_state.is_charge_change:
                 if self.solar_charge_state.vehicle_charge < force_charge_command.min_vehicle_charge:
                     new_charging_amps = force_charge_command.force_charge_amps
                 else:
