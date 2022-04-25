@@ -156,15 +156,26 @@ class TeslaSolarOptimiser:
         # Load any force charge commands
         force_charge_command: ForceChargeCommand = ForceChargeCommand.load()
         now = datetime.datetime.now()
+        should_force_charge = (
+                self.solar_charge_state.vehicle_charge < force_charge_command.min_vehicle_charge
+                or force_charge_command.force_charge is True
+        )
 
         if self.solar_charge_state.charge_state == "Complete" and self.solar_charge_state.port_open is False:
             self._send_command('CHARGE_PORT_DOOR_OPEN')  # Unlock the charge port
 
         # Check if we have enough excess solar to start charging or if we are force charging car
-        elif self.solar_charge_state.avg_spare_capacity > force_charge_command.min_spare_capacity \
-                or self.solar_charge_state.vehicle_charge < force_charge_command.min_vehicle_charge \
-                or force_charge_command.force_charge is True:
-            if self.solar_charge_state.charge_state == 'Stopped':
+        elif (
+                self.solar_charge_state.avg_spare_capacity > force_charge_command.min_spare_capacity
+                or should_force_charge is True
+        ):
+            if (
+                    self.solar_charge_state.charge_state == 'Stopped' and
+                    (
+                        self.solar_charge_state.battery_charge > 98 or # Fully charge house battery first
+                        should_force_charge
+                    )
+            ):
                 self._send_command('START_CHARGE')
 
                 # If we are below the minimum charge then force charge for 'force_charge_hours'
