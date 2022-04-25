@@ -189,8 +189,16 @@ class TeslaSolarOptimiser:
 
             # Stop charging because we don't have enough to even run a minimum charge but only if not force charging
             if self.solar_charge_state.avg_spare_capacity < 0:
+                is_forcing = force_charge_command.is_forcing_charge(
+                    self.solar_charge_state.vehicle_charge)
+                self._log(f"Low Capacity; "
+                          f""
+                          f"Possible charge rate: "
+                          f"{self.solar_charge_state.possible_charge_current}, "
+                          f"Is forcing: {is_forcing}")
+                
                 if self.solar_charge_state.possible_charge_current < 5 and \
-                        not force_charge_command.is_forcing_charge(self.solar_charge_state.vehicle_charge):
+                        not is_forcing:
                     self._send_command('STOP_CHARGE')
                     self._send_command('CHARGE_PORT_DOOR_OPEN')  # Unlock the charge port
 
