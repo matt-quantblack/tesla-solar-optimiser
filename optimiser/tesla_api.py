@@ -70,7 +70,7 @@ class TeslaAPI:
                 self.connect()
                 self.tesla.vehicle_list()[self.car_index].sync_wake_up()
                 car_data = self.tesla.vehicle_list()[self.car_index].get_vehicle_data()
-            except (teslapy.HTTPError, ReadTimeout, ConnectionError) as e:
+            except (teslapy.HTTPError, ReadTimeout, ConnectionError, teslapy.VehicleError) as e:
                 request_attempts -= 1
                 if request_attempts == 0:
                     raise ConnectionError(f"Could not connect to car: {e}")
