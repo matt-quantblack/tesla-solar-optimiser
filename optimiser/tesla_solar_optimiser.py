@@ -44,6 +44,7 @@ class TeslaSolarOptimiser:
         The main run loop that displays charge state and makes decisions on weather to charge the vehicle
         """
         loop_counter = 0
+        now = datetime.datetime.now()
         while True:
             try:
                 self.solar_charge_state = self.tesla_api.update_battery_charge_state(
@@ -52,7 +53,13 @@ class TeslaSolarOptimiser:
                 self._log(str(e), severity='ERROR')
 
             # Only update the car data every 60 loops to minimise car awake time
-            if loop_counter % 40 == 0:
+            if (
+                    loop_counter % 40 == 0
+                    and (
+                    (now.hour >= 6 and now.hour <= 17)
+                    or self.solar_charge_state.charge_state != 'Stopped'
+            )
+            ):
                 try:
                     self.solar_charge_state = self.tesla_api.update_car_charge_state(
                         solar_charge_state=self.solar_charge_state)
@@ -60,11 +67,13 @@ class TeslaSolarOptimiser:
                 except ConnectionError as e:
                     self._log(str(e), severity='ERROR')
 
-            Path('current_state.json').write_text(json.dumps(self.solar_charge_state.json))
+            Path('current_state.json').write_text(
+                json.dumps(self.solar_charge_state.json))
             if self.solar_charge_state is not None:
                 self._log(
                     message=str(self.solar_charge_state),
-                    severity=self._get_message_severity(self.solar_charge_state.charge_state))
+                    severity=self._get_message_severity(
+                        self.solar_charge_state.charge_state))
                 self._log_data()
                 self._determine_command()
 
@@ -125,7 +134,8 @@ class TeslaSolarOptimiser:
             severity = 'ERROR'
         return severity
 
-    def _send_command(self, command: str, message: str = None, severity: str = 'DEBUG', force_command=False, **kwargs):
+    def _send_command(self, command: str, message: str = None, severity: str = 'DEBUG',
+                      force_command=False, **kwargs):
         """
         Sends a command to the api
         Args:
@@ -138,7 +148,8 @@ class TeslaSolarOptimiser:
             self.last_command_time = datetime.datetime.now()
             result, success = self.tesla_api.send_command(command, **kwargs)
             if success:
-                self._log(message, severity) if message is not None else self._log(command, severity)
+                self._log(message, severity) if message is not None else self._log(
+                    command, severity)
             else:
                 self._log(result, severity="ERROR")
 
@@ -172,8 +183,8 @@ class TeslaSolarOptimiser:
             if (
                     self.solar_charge_state.charge_state == 'Stopped' and
                     (
-                        self.solar_charge_state.battery_charge > 98 or # Fully charge house battery first
-                        should_force_charge
+                            self.solar_charge_state.battery_charge > 98 or  # Fully charge house battery first
+                            should_force_charge
                     )
             ):
                 self._send_command('START_CHARGE')
@@ -211,7 +222,8 @@ class TeslaSolarOptimiser:
                 if self.solar_charge_state.possible_charge_current < 5 and \
                         not is_forcing:
                     self._send_command('STOP_CHARGE')
-                    self._send_command('CHARGE_PORT_DOOR_OPEN')  # Unlock the charge port
+                    self._send_command(
+                        'CHARGE_PORT_DOOR_OPEN')  # Unlock the charge port
 
                     # Mark force charging as complete since is_forcing_charge returns False - meaning it completed.
                     if force_charge_command.request_time is not None:
